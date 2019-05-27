@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import os, sys, time, json, cgi
 
 from http.server import BaseHTTPRequestHandler,HTTPServer
@@ -25,7 +26,7 @@ class Server(BaseHTTPRequestHandler):
     # GET sends back a Hello world message
     def do_GET(self):
         self._set_headers()
-        self.wfile.write(json.dumps({'status': 'ok'}))
+        self.wfile.write(json.dumps({'status': 'ok'}).encode(encoding='utf_8'))
         
     # POST echoes the message adding a JSON field
     def do_POST(self):
@@ -40,14 +41,17 @@ class Server(BaseHTTPRequestHandler):
         if self.path != '/send':
             self.send_response(404)
             self.end_headers()
+            return
 
         if self.headers.get('token') != SECURITY_TOKEN:
             self.send_response(401)
             self.end_headers()
+            return
             
         # read the message and convert it into a python dictionary
         length = int(self.headers.get('content-length'))
-        message = json.load(self.rfile.read(length))
+        response = self.rfile.read(length)
+        message = json.loads(response)
         
         print(message)
         Server.driver.send_message_to_id(message['address'], message['body'])
