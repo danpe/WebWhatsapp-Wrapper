@@ -70,7 +70,7 @@ class WhatsAPIDriver(object):
     _SELECTORS = {
         'firstrun': "#wrapper",
         'qrCode': "img[alt=\"Scan me!\"]",
-        'qrCodePlain': "._2EZ_m",
+        'qrCodePlain': "div[data-ref]",
         'mainPage': ".app.two",
         'chatList': ".infinite-list-viewport",
         'messageList': "#main > div > div:nth-child(1) > div > div.message-list",
@@ -85,7 +85,7 @@ class WhatsAPIDriver(object):
         'UnreadChatBanner': '.message-list',
         'ReconnectLink': '.action',
         'WhatsappQrIcon': 'span.icon:nth-child(2)',
-        'QRReloader': '._2EZ_m > span > div'
+        'QRReloader': 'div[data-ref] > span > div'
     }
 
     _CLASSES = {
@@ -105,7 +105,7 @@ class WhatsAPIDriver(object):
         return self.driver.execute_script('return window.localStorage;')
 
     def set_local_storage(self, data):
-        self.driver.execute_script(''.join(["window.localStorage.setItem('{}', '{}');".format(k, v)
+        self.driver.execute_script(''.join(["window.localStorage.setItem('{}', '{}');".format(k, v.replace("\n","\\n") if isinstance(v, str) else v)
                                             for k, v in data.items()]))
 
     def save_firefox_profile(self, remove_old=False):
@@ -266,6 +266,10 @@ class WhatsAPIDriver(object):
         # return 'class="app _3dqpi two"' in self.driver.page_source
         return self.wapi_functions.isLoggedIn()
 
+    def is_connected(self):
+        """Returns if user's phone is connected to the internet."""
+        return self.wapi_functions.isConnected()
+
     def wait_for_login(self, timeout=90):
         """Waits for the QR to go away"""
         WebDriverWait(self.driver, timeout).until(
@@ -361,7 +365,7 @@ class WhatsAPIDriver(object):
         unread_messages = []
         for raw_message_group in raw_message_groups:
             chat = factory_chat(raw_message_group, self)
-            messages = [factory_message(message, self) for message in raw_message_group['messages']]
+            messages = list(filter(None.__ne__,[factory_message(message, self) for message in raw_message_group['messages']]))
             messages.sort(key=lambda message: message.timestamp)
             unread_messages.append(MessageGroup(chat, messages))
 
